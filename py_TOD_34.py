@@ -163,6 +163,212 @@ class Class_DB_SQLite():
             return [1, ex]
         return [0, 'ok']
 #=======================================================================
+class Class_FUT():
+    def __init__(self):
+        self.sP_code, self.arr = '', []
+    def __retr__(self):
+        return  '{} {}'.format(self.sP_code,  str([int(k) for k in self.arr]))
+    def __str__(self):
+        return  '{} {}'.format(self.sP_code,  str([int(k) for k in self.arr]))
+#=======================================================================
+class Class_ACNT():
+    def __init__(self):
+        self.ss = '        bal,      prf,      go,       dep'
+        self.dt, self.arr  = '', []
+    def __retr__(self):
+        return 'dt = {}\n{}\narr={}\n'.format(self.dt, self.ss, str(self.arr))
+    def __str__(self):
+        return 'dt = {}\n{}\narr={}\n'.format(self.dt, self.ss, str(self.arr))
+#=======================================================================
+class Class_TRMN():
+    #---------------------------  err_status  --------------------------
+    err_try  = 128      #
+    err_file = 1        # can not find file => path_file_DATA
+    err_size = 2        # size DATA file is 0
+    err_mdf_time  = 4   # FILE is not modificated
+    err_file_size = 8   # FILE size is NULL
+    #err_mrkt_time = 16  # size buf_str is NULL
+    err_update_db = 32  #  can not update info in DB
+    #-------------------------------------------------------------------
+    def __init__(self):
+        self.path_file_DATA = ''
+        self.path_file_HIST = ''
+        c_dir    = os.path.abspath(os.curdir)
+        self.lg_file =    Class_LGR(c_dir + '\\LOG\\py_TERM.log')
+        #
+        self.dt_file = 0        # curv stamptime data file path_file_DATA
+        self.dt_data = 0        # curv stamptime DATA/TIME from TERM
+        self.data_in_file = []  # list of strings from path_file_DATA
+        self.hist_in_file = []  # list of strings from path_file_HIST
+        #
+        self.dt_fut      = []    # list of Class_FUT()
+        #self.data_Class_str_FUT  = []    # list of Class_str_FUT()
+        self.account = Class_ACNT()  # obj Class_ACCOUNT()
+        #
+        self.time_1_min = 0
+        #
+        self.err_status  = 0
+        self.cnt_errors  = 0
+    #-------------------------------------------------------------------
+    def err_rd_term(self, err_pop = False, err_log = False):
+        self.cnt_errors += 1
+        if err_pop:
+            err_lmb('err_rd_term',
+                s_lmb(bin(self.err_status) + str(5*' ') + str(self.err_status)) +
+                s_lmb('----------------------------------------------------') +
+                s_lmb('0b001      1   # can not find file => path_file_DATA') +
+                s_lmb('0b010      2   # size DATA file is 0                ') +
+                s_lmb('0b100      4   # FILE is not modificated            ') +
+                s_lmb('0b1000     8   # FILE size is NULL                  ') +
+                s_lmb('0b100000   32  # can not update info in DB          ') +
+                s_lmb('0b10000000 128 # error of TRY                       ')
+                )
+        if err_log:
+            self.lg_file.wr_log_error('err_rd_term => ' + str(self.err_status))
+    #-------------------------------------------------------------------
+    def check_MARKET_time(self, term_dt):
+        try:
+            dtt = datetime.strptime(term_dt, "%d.%m.%Y %H:%M:%S")
+            cur_time = dtt.second + 60 * dtt.minute + 60 * 60 * dtt.hour
+            if (
+                (cur_time > 35995  and # from 09:59:55 to 14:00:05
+                cur_time < 50415) or   #
+                (cur_time > 50685  and # from 14:04:55 to 18:45:05
+                cur_time < 67505) or
+                (cur_time > 68695  and # from 19:04:55 to 23:50:05
+                cur_time < 85805)):
+                    return True
+        except Exception as ex:
+            print('ERROR term_dt = ', term_dt)
+        return False
+    #-------------------------------------------------------------------
+    def rd_term_FUT(self):
+        # read data FUT from file 'path_file_DATA'----------------------
+        print('=> _TERM rd_term_FUT')
+        self.err_status  = 0
+        try:
+            #--- check file self.file_path_DATA ------------------------
+            if not os.path.isfile(self.path_file_DATA):
+                self.err_status += self.err_file
+                return
+            buf_stat = os.stat(self.path_file_DATA)
+            #--- check size of file ------------------------------------
+            if buf_stat.st_size == 0:
+                self.err_status += self.err_size
+                return
+            #--- check time modificated of file ------------------------
+            print('self.dt_file       ', self.dt_file)
+            print('buf_stat.st_mtime  ', int(buf_stat.st_mtime))
+            if int(buf_stat.st_mtime) == self.dt_file:
+                #str_dt_file = datetime.fromtimestamp(self.dt_file).strftime('%H:%M:%S')
+                self.err_status += self.err_mdf_time
+                return
+            else:
+                self.dt_file = int(buf_stat.st_mtime)
+            #--- read TERM file ----------------------------------------
+            buf_str = []
+            with open(self.path_file_DATA,"r") as fh:
+                buf_str = fh.read().splitlines()
+            #--- check size of list/file -------------------------------
+            if len(buf_str) == 0:
+                self.err_status += self.err_file_size
+                return
+            self.data_in_file = buf_str[:]
+            #for i in self.data_in_file:   print(i)
+            #
+            self.dt_fut = []
+            acc = self.account
+            for i, item in enumerate(self.data_in_file):
+                lst = ''.join(item).replace(',','.').split('|')
+                del lst[-1]
+                if   i == 0:
+                    acc.dt  = lst[0]
+                    dtt = datetime.strptime(acc.dt, "%d.%m.%Y %H:%M:%S")
+                elif i == 1:
+                    acc.arr = [float(j) for j in lst]
+                else:
+                    b_fut = Class_FUT()
+                    b_fut.sP_code = lst[0]
+                    b_fut.arr     = [float(k) for k in lst[1:]]
+                    self.dt_fut.append(b_fut)
+        except Exception as ex:
+            self.err_status += self.err_try
+        return
+    #-------------------------------------------------------------------
+    def rd_term_HST(self):
+        # read HIST from file 'path_file_HIST'--------------------------
+        print('=> _TERM rd_term_HST')
+        self.err_status  = 0
+        try:
+            path_hist = self.path_file_HIST
+            #--- check file self.path_file_HIST ------------------------
+            if not os.path.isfile(path_hist):
+                self.err_status += self.err_file # can not find path_file_HIST
+                return
+            buf_stat = os.stat(path_hist)
+            #--- check size of file ------------------------------------
+            if buf_stat.st_size == 0:
+                self.err_status += self.err_size # size HIST file is NULL
+                return
+            #--- read HIST file ----------------------------------------
+            buf_str = []
+            with open(path_hist,"r") as fh:
+                buf_str = fh.read().splitlines()
+            #--- check size of list/file -------------------------------
+            if len(buf_str) == 0:
+                self.err_status += self.err_file_size # the size buf_str(HIST) is NULL
+                return
+            #--- check MARKET time from 10:00 to 23:45 -----------------
+            self.hist_in_file = []
+            error_MARKET_time = False
+            for i, item in enumerate(buf_str):
+                term_dt = item.split('|')[0]
+                if self.check_MARKET_time(term_dt):
+                    self.hist_in_file.append(item)
+                else:
+                    error_MARKET_time = True
+                    print('error string is ',i)
+            #--- repeir file 'path_file_HIST' --------------------------
+            if error_MARKET_time:
+                with open(path_hist, 'w') as file_HIST:
+                    for item in self.hist_in_file:
+                        file_HIST.write(item+'\n')
+            #
+        except Exception as ex:
+            print('rd_term_HST\n' + str(ex))
+            self.err_status += self.err_try
+        return
+#=======================================================================
+class Class_GLBL():
+    def __init__(self):
+        self.trm = Class_TRMN()
+        c_dir    = os.path.abspath(os.curdir)
+        self.db_ARCHV = Class_DB_SQLite(c_dir + '\\DB\\db_ARCH.sqlite')
+        self.db_TODAY = Class_DB_SQLite(c_dir + '\\DB\\db_TODAY.sqlite')
+        self.cfg_soft = [] # list of table 'cfg_SOFT'
+        self.wndw_menu   = ''
+        self.stastus_bar = ''
+    #-------------------------------------------------------------------
+    def read_cfg_soft(self):
+        print('=> _GLBL read_cfg_soft')
+        try:
+            tbl = self.db_TODAY.read_tbl('cfg_SOFT')
+            if tbl[0] > 0:
+                err_lmb('read_cfg_soft', tbl[1])
+                return [2, tbl[1]]
+            self.cfg_soft = tbl[1]
+            # frm = '%Y-%m-%d %H:%M:%S'
+            # self.dt_start_sec = \
+                # int(datetime.strptime(self.dt_start, frm).replace(tzinfo=timezone.utc).timestamp())
+            for item in self.cfg_soft: print(item)
+            self.trm.path_file_DATA = self.cfg_soft[Class_CNST.path_file_DATA][1]
+            self.trm.path_file_HIST = self.cfg_soft[Class_CNST.path_file_HIST][1]
+            #sg.popup_ok(self.cfg_soft, background_color='LightGreen', title='read_cfg_soft')
+        except Exception as ex:
+            err_lmb('read_cfg_soft', str(ex))
+            return [1, ex]
+        return [0, tbl[1]]
+#=======================================================================
 
 
 #=======================================================================
@@ -244,23 +450,39 @@ def tabs_layout(nmb_tab, tab_tabs):
 def main():
     sg.theme('DefaultNoMoreNagging')     # Please always add color to your window DefaultNoMoreNagging
     #test_msg_lmb()
-    #_gl = Class_GLBL()
+    _gl = Class_GLBL()
+    while True: #--- INIT cycle ---------------------------------------#
+        rep = _gl.read_cfg_soft()
+        if rep[0] > 0:
+            err_lmb('main', s_lmb('Could not read table *cfg_soft*!') + s_lmb(rep[1]))
+            sg.popup_ok('Could not read table *cfg_soft*!', rep[1], background_color='Coral', title='main')
+            return 0
+        #bp()
+        #
+        _gl.trm.rd_term_FUT()
+        if _gl.trm.err_status > 0:
+            err_lmb('main', s_lmb('Could not read term *data_file*!') + s_lmb(_gl.trm.err_status))
+            return 0
+        else:
+            #sg.popup_ok('Read term *data_file* successfully !', background_color='LightGreen', title='main')
+            os.system('cls')  # on windows
+        #
+        _gl.trm.rd_term_HST()
+        if _gl.trm.err_status > 0:
+            err_lmb('main', s_lmb('Could not read term *hist_file*!') + s_lmb(_gl.trm.err_status))
+        else:
+            #sg.popup_ok('Read term *hist_file* successfully !', background_color='LightGreen', title='main')
+            os.system('cls')  # on windows
+        break
     while True: #--- Menu & Tab Definition ----------------------------#
-        menu_def = [['File',    ['Save',      'Clear HIST file',  'Clear HIST table',   '---', 'Exit']],
-                    ['Service', ['Edit CFG_SOFT', 'Command_2', '---',
-                                 'Show FUT File DAT']],
+        menu_def = [['File',    ['Save',     'Clr HIST file',    'Clr HIST table', '---', 'Exit']],
+                    ['Service', ['CFG_SOFT', 'Command_2', '---', 'FUT File DAT']],
                     ['Help',    ['About...']],]
         #
         tab_keys = ('-Data_PRFT-', '-File_HIST-', '-Tbl_HIST-', '-CFG_SOFT-', '-Data_ACNT-')
         tab_tabs = ( 'Data PRFT',   'File HIST',   'Tabl HIST',   'Conf SOFT', 'Data ACNT')
         tab_group_layout = [[sg.Tab(tab_tabs[nm], tabs_layout(nm, tab_tabs), key=tab_keys[nm]) for nm in range(len(tab_keys))]]
         #
-        #tab_group_layout = [[sg.Tab('Data PRFT', tabs_layout(0), key='-Data_PRFT-')],
-        #                    [sg.Tab('File HIST', tabs_layout(1), key='-File_HIST-')],
-        #                    [sg.Tab('Tabl HIST', tabs_layout(2), key='-Tbl_HIST-' )],
-        #                    [sg.Tab('Conf SOFT', tabs_layout(3), key='-CFG_SOFT-' )],
-        #                    [sg.Tab('Data ACNT', tabs_layout(4), key='-Data_ACNT-')],
-        #                   ]
         layout = [[sg.Menu(menu_def, tearoff=False, pad=(200, 1), key='-MENU-')],
                   [sg.TabGroup(tab_group_layout, enable_events=True,
                                key='-TABGROUP-')],
@@ -269,9 +491,8 @@ def main():
                                 key='-STATUS_BAR-'),
                     sg.Exit(auto_size_button=True)]]
         window = sg.Window('My window with tabs', layout, finalize=True, no_titlebar=False, location=locationXY)
-        tab_keys = ('-Data_PRFT-', '-File_HIST-', '-Tbl_HIST-', '-CFG_SOFT-', '-Data_ACNT-')
+        window.set_title(_gl.cfg_soft[0][1])
         break
-
     while True: #--- Main Cycle ---------------------------------------#
         event, values = window.read(timeout = DelayMainCycle)
         print(event, values)    # type(event): str,   type(values):dict
