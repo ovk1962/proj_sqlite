@@ -22,7 +22,7 @@ err_lmb = lambda st,s: sg.PopupError(s, title=st,
 #
 locationXY = (300, 50)
 DelayMainCycle = 2500   # delay of main cycle, 1 msec
-hist_day_load  = 3     # ARCHIV history from 23 March
+hist_day_load  = 2     # ARCHIV history from 23 March
 #
 def test_msg_lmb():
     #bp()
