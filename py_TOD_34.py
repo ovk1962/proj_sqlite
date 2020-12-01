@@ -22,6 +22,7 @@ err_lmb = lambda st,s: sg.PopupError(s, title=st,
 #
 locationXY = (300, 50)
 DelayMainCycle = 2500   # delay of main cycle, 1 msec
+hist_day_load  = 2     # ARCHIV history from 23 March
 #
 def test_msg_lmb():
     #bp()
@@ -379,6 +380,10 @@ class Class_GLBL():
         self.arr_pck_t = []
         self.arr_fut_a = []
         self.arr_pck_a = []
+        #
+        self.dt_db_TODAY = 0     # time modificated of file db_TODAY (seconds)
+        #
+        self.err_status  = 0
     #-------------------------------------------------------------------
     def err_DB(self, err_pop = False, err_log = False):
         #self.cnt_errors += 1
@@ -891,7 +896,31 @@ def event_TIMEOUT(_gl, wndw, ev, val):
             if rep[0] > 0:
                 _gl.trm.err_rd_term(err_log = True)
                 #err_lmb('main', s_lmb('Could not update tables ') + s_lmb(rep[1]))
-            #
+            else:
+                try:
+                    #--- Read time modificated of file db_TODAY ----------------
+                    buf_stat = os.stat(os.path.abspath(os.curdir) +
+                                                    '\\DB\\db_TODAY.sqlite')
+                    #--- check time modificated of file ------------------------
+                    if int(buf_stat.st_mtime) > _gl.dt_db_TODAY:
+                        _gl.dt_db_TODAY = int(buf_stat.st_mtime)
+                        rep = _gl.read_unpack_TODAY()
+                        if rep[0] > 0:
+                            _gl.stastus_bar = _gl.account.dt + 3*' ' + 'error ...'
+                        else:
+                            _gl.stastus_bar = _gl.account.dt + 3*' ' + 'Got new DATA'
+                            if _gl.len_arr_fut_t != len(_gl.arr_fut_t):
+                                _gl.len_arr_fut_t = len(_gl.arr_fut_t)
+                                rep = _gl.calc_arr_pck_today()
+                                if rep[0] == 0:
+                                    rep = _gl.pack_arr_pck(_gl.arr_pck_t, _gl.db_TODAY, 'hist_PACK')
+                                    if rep[0] > 0:
+                                        _gl.err_status = 'calc_arr_pck / Did not update *hist_PACK* db_TODAY!  ' + s_lmb(rep[1])
+                                        _gl.err_DB(err_log = True)
+                    else:
+                        _gl.stastus_bar = _gl.account.dt + 3*' ' + 'wait ...'
+                except Exception as ex:
+                    _gl.err_DB(err_log = True)
         #--- refresh TABGROUP ---
         event_TABGROUP(_gl, wndw, ev, val)
     except Exception as ex:
@@ -1134,8 +1163,149 @@ def event_MENU(_gl, wndw, ev, val):
         else:
             sg.popup_ok('You MUST choise tab CFG_SOFT', background_color='LightGrey', title=ev)
     #----------------------------------------
-    if ev == 'Command_2':
-        pass
+    if ev == 'CFG_PACK':
+        #wndw.disappear()
+
+        mtrx = []
+        for item in _gl.cfg_pck:
+            ratio = str(round(item[Class_CNST.kPos]/item[Class_CNST.kNeg],2))
+            mtrx.append(item + [ratio])
+
+        layout = [[sg.Table(
+                            values   = mtrx,
+                            num_rows = min(len(mtrx), 35),
+                            headings = Class_CNST.head_cfg_pack,
+                            key      = '_CFG_PACK_table_',
+                            auto_size_columns     = True,
+                            justification         = 'center',
+                            alternating_row_color = 'coral',
+                            )],
+                        [#sg.Button(' READ ', key='-READ_CFG_PACK-'),
+                         sg.Button(' EDIT ', key='-EDIT_CFG_PACK-'),
+                         sg.Button(' ADD  ', key='-ADD_CFG_PACK-' ),
+                         sg.Button(' DEL  ', key='-DEL_CFG_PACK-' ),
+                         sg.Button(' SAVE ', key='-SAVE_CFG_PACK-'),
+                         sg.T(90*' '), sg.Button('Close')],]
+
+        wnd_4 = sg.Window('DB_TABL / CONF_PACK_TABL', layout, no_titlebar=False, modal=True)
+        while True: #--- Main Cycle ---------------------------------------#
+            e, v = wnd_4.read()
+            if e in [sg.WIN_CLOSED, 'Close']:  break
+            #-------------------------------------------------------------------
+            # You must calc_cfg_pack After EDIT/CHANGE parametrs PACKET
+            #-------------------------------------------------------------------
+            if e == '-EDIT_CFG_PACK-':
+                print('-EDIT_CFG_PACK-')
+                if len(v['_CFG_PACK_table_']) == 0:
+                    #wrn_lmb('event_menu_CFG_PACK', '\n You MUST choise ROW !\n')
+                    sg.PopupOK('\n You MUST choise ROW !\n',
+                        title='event_menu_CFG_PACK', background_color = 'Gold',
+                        no_titlebar = False, keep_on_top=True)
+                else:
+                    slct = _gl.cfg_pck[v['_CFG_PACK_table_'][0]]
+                    chng = Class_CNST.head_cfg_pack[:]
+                    for i, item in enumerate(slct):
+                        if i in [Class_CNST.kNm, Class_CNST.kKoef, Class_CNST.kEma]:
+                            pop_txt = item
+                            if i == Class_CNST.kKoef:
+                                pop_txt = ''
+                                for ss in item:
+                                    pop_txt += ':'.join((str(s) for s in ss)) + ','
+                                pop_txt = pop_txt[:-1]
+                            if i == Class_CNST.kEma:
+                                pop_txt = ':'.join(str(s) for s in item)
+                            txt = sg.PopupGetText( Class_CNST.head_cfg_pack[i], size=(95,1), default_text = pop_txt)
+                            if (txt == None) or (txt == pop_txt): chng[i] = item
+                            else:
+                                if i == Class_CNST.kNm:
+                                    chng[i] = txt
+                                if i == Class_CNST.kKoef:
+                                    arr_k    = txt.split(',')
+                                    arr_koef = []
+                                    for item_k in arr_k:
+                                        arr_koef.append([int(f) if f.replace('-','').isdigit() else f for f in item_k.split(':')])
+                                    chng[i] = arr_koef
+                                if i == Class_CNST.kNul or i == Class_CNST.kGo or i == Class_CNST.kPos or i == Class_CNST.kNeg:
+                                    if txt.isdigit():   chng[i] = int(txt)
+                                    else:               chng[i] = item
+                                if i == Class_CNST.kEma:
+                                    chng[i] = [int(e) for e in txt.split(':')]
+                        else:
+                            chng[i] = item
+                    _gl.cfg_pck[v['_CFG_PACK_table_'][0]] = chng
+                    wnd_4.FindElement('_CFG_PACK_table_').Update(_gl.cfg_pck)
+                    slct = _gl.cfg_pck[v['_CFG_PACK_table_'][0]]
+                    e = '-SAVE_CFG_PACK-'
+            #-------------------------------------------------------------------
+            if e == '-ADD_CFG_PACK-':
+                print('-ADD_CFG_PACK-')
+                if len(v['_CFG_PACK_table_']) == 0:
+                    #wrn_lmb('event_menu_CFG_PACK', '\n You MUST choise ROW !\n')
+                    sg.PopupOK('\n You MUST choise ROW !\n',
+                        title='event_menu_CFG_PACK', background_color = 'Gold',
+                        no_titlebar = False, keep_on_top=True)
+                else:
+                    slct = _gl.cfg_pck[v['_CFG_PACK_table_'][0]]
+                    _gl.cfg_pck.append(slct)
+                    print('append slct  ', slct)
+                    print('len _gl.cfg_pck => ', len(_gl.cfg_pck))
+                    wnd_4.FindElement('_CFG_PACK_table_').Update(_gl.cfg_pck)
+                    e = '-SAVE_CFG_PACK-'
+            #-------------------------------------------------------------------
+            if e == '-DEL_CFG_PACK-':
+                print('-DEL_CFG_PACK-')
+                if len(v['_CFG_PACK_table_']) == 0:
+                    #wrn_lmb('event_menu_CFG_PACK', '\n You MUST choise ROW !\n')
+                    sg.PopupOK('\n You MUST choise ROW !\n',
+                        title='event_menu_CFG_PACK', background_color = 'Gold',
+                        no_titlebar = False, keep_on_top=True)
+                else:
+                    del _gl.cfg_pck[v['_CFG_PACK_table_'][0]]
+                    wnd_4.FindElement('_CFG_PACK_table_').Update(_gl.cfg_pck)
+                    e = '-SAVE_CFG_PACK-'
+            #-------------------------------------------------------------------
+            if e == '-SAVE_CFG_PACK-':
+                print('-SAVE_CFG_PACK-')
+                rep = _gl.update_tbl_cfg_pack()
+                if rep[0] > 0:
+                    err_lmb('event_menu_CFG_PACK', s_lmb('Did not update cfg_PACK!') + s_lmb(rep[1]))
+                else:
+                    #ok_lmb('event_menu_CFG_PACK','Updated *cfg_PACK* successfully !')
+                    sg.popup_ok(s_lmb('Updated *cfg_PACK* successfully !'),
+                            background_color='LightGreen', title='main')
+            #-------------------------------------------------------------------
+
+        wnd_4.close()
+        #wndw.reappear()
+    #----------------------------------------
+    if ev == 'PACK TABL':
+        #wndw.disappear()
+
+        mtrx = []
+        if len(_gl.arr_pck_t) > 0:
+            txt_dt = _gl.arr_pck_t[-1].dt
+            for i, item in enumerate(_gl.arr_pck_t[-1].arr):
+                mtrx.append( [_gl.cfg_pck[i][Class_CNST.kNm] ] + item)
+        else:
+            txt_dt = _gl.arr_pck_a[-1].dt
+            for i, item in enumerate(_gl.arr_pck_a[-1].arr):
+                mtrx.append( [_gl.cfg_pck[i][Class_CNST.kNm] ] + item)
+
+        layout = [[sg.Table(
+                    values   = mtrx,
+                    num_rows = min(len(mtrx), 35),
+                    headings = Class_CNST.head_data_pack,
+                    key      = '_DATA_PACK_table_',
+                    auto_size_columns     = True,
+                    justification         = 'center',
+                    alternating_row_color = 'lightsteelblue',
+                    )],[sg.Button('Close')],                    ]
+        wnd_3 = sg.Window('DB_TABL / DATA_PACK_TABL', layout, no_titlebar=False, modal=True)
+        while True: #--- Main Cycle ---------------------------------------#
+            e, v = wnd_3.read()
+            if e in [sg.WIN_CLOSED, 'Close']:  break
+        wnd_3.close()
+        #wndw.reappear()
     #----------------------------------------
     if ev == 'FUT File DAT':
         mtrx = [([item.sP_code] + item.arr) for item in _gl.trm.dt_fut]
@@ -1173,8 +1343,8 @@ def main():
             err_lmb('main', s_lmb('Error read_unpack_TODAY!') + s_lmb(rep[1]))
             return 0
         else:
-            sg.popup_ok(s_lmb('Read & unpack ALL tables TODAY successfully !'),
-                background_color='LightGreen', title='main')
+            #sg.popup_ok(s_lmb('Read & unpack ALL tables TODAY successfully !'),
+            #    background_color='LightGreen', title='main')
             os.system('cls')  # on windows
         #---------------------------------------------------------------
         #rep = _gl.read_cfg_soft()
@@ -1203,12 +1373,77 @@ def main():
             #sg.popup_ok('Read term *hist_file* successfully !', background_color='LightGreen', title='main')
             os.system('cls')  # on windows
         #---------------------------------------------------------------
-
+        rep = _gl.db_ARCHV.read_tbl('hist_FUT')
+        if rep[0] > 0:
+            err_lmb('main', s_lmb('Not read db_ARCHV *hist_FUT*!') + s_lmb(rep[1]))
+            return 0
+        else:
+        #    sg.popup_ok(s_lmb('Read db_ARCHV table *hist_FUT* successfully => '
+        #                        + str(len(rep[1])) + ' strings'),
+        #                        background_color='LightGreen',
+        #                        title='main')
+            os.system('cls')  # on windows
+        #--- Attention !!! ---------------------------------------------
+        # On start just read table *hist_FUT* from db_ARCHV,
+        # BUT unpack ONLY last 2600 strings. It's hist for last 5 days!!!
+        #---------------------------------------------------------------
+        rep = _gl.unpack_str_fut(rep[1][-(520 * hist_day_load):])
+        if rep[0] > 0:
+            err_lmb('main', s_lmb('Did not unpack *hist_FUT* from ARCH!') + s_lmb(rep[1]))
+            return 0
+        else:
+            _gl.arr_fut_a = rep[1]
+            _gl.prn_arr('arr_fut_a', _gl.arr_fut_a)
+        #    sg.popup_ok(s_lmb('Unpack *hist_FUT* successfully => '
+        #                        + str(len(rep[1])) + ' strings'),
+        #                        background_color='LightGreen',
+        #                        title='main')
+            os.system('cls')  # on windows
+        #---------------------------------------------------------------
+        rep = _gl.db_ARCHV.read_tbl('hist_PACK')
+        if rep[0] > 0:
+            err_lmb('main', s_lmb('Not read db_ARCHV *hist_PACK*!') + s_lmb(rep[1]))
+            return 0
+        else:
+            _gl.prn_arr('arr_pck_a', rep[1])
+        #    sg.popup_ok(s_lmb('Read *hist_PACK* successfully => '
+        #                       + str(len(rep[1])) + ' strings'),
+        #                       background_color='LightGreen',
+        #                       title='main')
+            os.system('cls')  # on windows
+        if len(rep[1]) == 0:
+            err_lmb('main', s_lmb('ZERO lench table db_ARCHV *hist_PACK*!') )
+            rep = _gl.calc_arr_pck()
+            return 0
+        #--- Speed of Unpack is about 1500 str/per 1 sec ---------------
+        rep = _gl.unpack_str_pck(rep[1][-(520 * hist_day_load):])
+        if rep[0] > 0:
+            err_lmb('main', s_lmb('Error unpack_str_pck!') + s_lmb(rep[1]))
+            return 0
+        else:
+            _gl.arr_pck_a = rep[1]
+            _gl.prn_arr('arr_pck_a', _gl.arr_pck_a)
+            #sg.popup_ok(s_lmb('Unpack *hist_PACK* successfully => '
+            #                    + str(len(rep[1])) + ' strings'),
+            #                    background_color='LightGreen',
+            #                    title='main')
+            os.system('cls')  # on windows
+        #---------------------------------------------------------------
+        rep = _gl.calc_arr_pck_today()
+        if rep[0] > 0:
+            err_lmb('main', s_lmb('Not calc *hist_PACK* today!') + s_lmb(rep[1]))
+            return 0
+        else:
+            _gl.prn_arr('arr_pck_t', _gl.arr_pck_t)
+        #    sg.popup_ok(s_lmb('Calc *hist_PACK* today successfully => '),
+        #                        background_color='LightGreen',
+        #                        title='main')
+            os.system('cls')  # on windows
         #---------------------------------------------------------------
         break
     while True: #--- Menu & Tab Definition ----------------------------#
         menu_def = [['File',    ['Save',     'Clr HIST file',    'Clr HIST table', '---', 'Exit']],
-                    ['Service', ['CFG_SOFT', 'Command_2', '---', 'FUT File DAT']],
+                    ['Service', ['CFG_SOFT', 'CFG_PACK', '---', 'FUT File DAT', 'PACK TABL']],
                     ['Help',    ['About...']],]
         #
         tab_keys = ('-Data_PRFT-', '-File_HIST-', '-Tbl_HIST-', '-CFG_SOFT-', '-Data_ACNT-')
@@ -1236,7 +1471,9 @@ def main():
         if event in ['-TABGROUP-']:
             event_TABGROUP(_gl, window, event, values)
         #
-        if event in ['Save', 'Clr HIST file',  'Clr HIST table', 'CFG_SOFT', 'Command_2', 'FUT File DAT', 'About...']:
+        if event in ['Save',     'Clr HIST file',  'Clr HIST table',
+                     'CFG_SOFT', 'CFG_PACK',       'PACK TABL', 'FUT File DAT',
+                     'About...']:
             event_MENU(_gl, window, event, values)
     window.close()
     return 0
