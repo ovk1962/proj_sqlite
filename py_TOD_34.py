@@ -1274,8 +1274,13 @@ def event_MENU(_gl, wndw, ev, val):
                     sg.popup_ok(s_lmb('Updated *cfg_PACK* successfully !'),
                             background_color='LightGreen', title='main')
             #-------------------------------------------------------------------
-
         wnd_4.close()
+        #wndw.reappear()
+    #----------------------------------------
+    if ev == 'PACK GRAPH':
+        pass
+        #wndw.disappear()
+        #wnd_4.close()
         #wndw.reappear()
     #----------------------------------------
     if ev == 'PACK TABL':
@@ -1443,7 +1448,7 @@ def main():
         break
     while True: #--- Menu & Tab Definition ----------------------------#
         menu_def = [['File',    ['Save',     'Clr HIST file',    'Clr HIST table', '---', 'Exit']],
-                    ['Service', ['CFG_SOFT', 'CFG_PACK', '---', 'FUT File DAT', 'PACK TABL']],
+                    ['Service', ['CFG_SOFT', 'CFG_PACK', '---', 'FUT File DAT', 'PACK TABL', '---', 'PACK GRAPH']],
                     ['Help',    ['About...']],]
         #
         tab_keys = ('-Data_PRFT-', '-File_HIST-', '-Tbl_HIST-', '-CFG_SOFT-', '-Data_ACNT-')
@@ -1472,7 +1477,7 @@ def main():
             event_TABGROUP(_gl, window, event, values)
         #
         if event in ['Save',     'Clr HIST file',  'Clr HIST table',
-                     'CFG_SOFT', 'CFG_PACK',       'PACK TABL', 'FUT File DAT',
+                     'CFG_SOFT', 'CFG_PACK',       'PACK TABL', 'FUT File DAT', 'PACK GRAPH',
                      'About...']:
             event_MENU(_gl, window, event, values)
     window.close()
