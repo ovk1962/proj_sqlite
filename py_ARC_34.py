@@ -834,6 +834,7 @@ def main():
                      'CFG_SOFT', 'CFG_PACK',       'PACK TABL', 'FUT File DAT', 'PACK GRAPH',
                      'About...']:
             event_MENU(_gl, window, event, values)
+            event_TABGROUP(_gl, window, event, values)  # just for refresh UI
     window.close()
     return 0
 
