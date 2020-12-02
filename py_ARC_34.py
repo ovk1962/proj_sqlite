@@ -716,6 +716,40 @@ def GRAPH_One_PACK(_gl, wndw, ev, val, period_days = 3):
     #ax.set_xticks([])
     fig_agg = draw_figure(canvas, fig)
 
+    #--- read ALL hist_FUT archiv  -----------------------------
+    req = _gl.db_TODAY.read_tbl('hist_PACK')
+    if req[0] > 0:
+        _gl.err_status = 'GRAPH_One_PACK / Not read db_ARCHV *hist_PACK*!  ' + s_lmb(req[1])
+        _gl.err_DB(err_pop = True, err_log = True)
+        return
+    rep = _gl.db_ARCHV.read_tbl('hist_PACK')
+    if rep[0] > 0:
+        _gl.err_status = 'GRAPH_One_PACK / Not read db_ARCHV *hist_PACK*!  ' + s_lmb(rep[1])
+        _gl.err_DB(err_pop = True, err_log = True)
+        return
+    #_gl.prn_arr('db_ARCHV=>hist_PACK=>',rep[1][-1])
+    #
+    period_tm = period_days
+    index_last_day = len(rep[1])
+    df = rep[1][-1][1].split('|')[0].split(' ')[0]
+    #print('df = ', df)
+    for item in reversed(rep[1]):
+        index_last_day -= 1
+        if item[1].split('|')[0].split(' ')[0] != df:
+            df = item[1].split('|')[0].split(' ')[0]
+            period_tm -= 1
+        if period_tm == 0:
+            break
+    index_last_day += 1
+
+    req = _gl.unpack_str_pck(rep[1][index_last_day:] + req[1])
+    #print('req[1][0] => ',req[1][0])
+    if req[0] > 0:
+        err_lmb('main', s_lmb('Error unpack_str_pck!') + s_lmb(req[1]))
+        return
+    else:
+        _gl.arr_pck_a = req[1]
+                
     while True: #--- Main Cycle ---------------------------------------#
         e, v = wnd_5.read()
         if e in [sg.WIN_CLOSED, 'Close']:
@@ -731,39 +765,7 @@ def GRAPH_One_PACK(_gl, wndw, ev, val, period_days = 3):
             print('    -NUM_PACK-    ', num_packet )
             arr_num_pack = [num_packet]
 
-            #--- read ALL hist_FUT archiv  -----------------------------
-            req = _gl.db_TODAY.read_tbl('hist_PACK')
-            if req[0] > 0:
-                _gl.err_status = 'GRAPH_One_PACK / Not read db_ARCHV *hist_PACK*!  ' + s_lmb(req[1])
-                _gl.err_DB(err_pop = True, err_log = True)
-                return
-            rep = _gl.db_ARCHV.read_tbl('hist_PACK')
-            if rep[0] > 0:
-                _gl.err_status = 'GRAPH_One_PACK / Not read db_ARCHV *hist_PACK*!  ' + s_lmb(rep[1])
-                _gl.err_DB(err_pop = True, err_log = True)
-                return
-            #_gl.prn_arr('db_ARCHV=>hist_PACK=>',rep[1][-1])
             #
-            period_tm = period_days
-            index_last_day = len(rep[1])
-            df = rep[1][-1][1].split('|')[0].split(' ')[0]
-            #print('df = ', df)
-            for item in reversed(rep[1]):
-                index_last_day -= 1
-                if item[1].split('|')[0].split(' ')[0] != df:
-                    df = item[1].split('|')[0].split(' ')[0]
-                    period_tm -= 1
-                if period_tm == 0:
-                    break
-            index_last_day += 1
-
-            req = _gl.unpack_str_pck(rep[1][index_last_day:] + req[1])
-            #print('req[1][0] => ',req[1][0])
-            if req[0] > 0:
-                err_lmb('main', s_lmb('Error unpack_str_pck!') + s_lmb(req[1]))
-                return
-            else:
-                _gl.arr_pck_a = req[1]
             
             arr_pk_graph = []
             for item in _gl.arr_pck_a:
