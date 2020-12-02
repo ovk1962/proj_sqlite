@@ -362,7 +362,7 @@ class Class_GLBL():
     def __init__(self):
         self.trm = Class_TRMN()
         c_dir    = os.path.abspath(os.curdir)
-        self.lg_file  = Class_LGR      (c_dir + '\\LOG\\py_TABS.log')
+        self.lg_file  = Class_LGR      (c_dir + '\\LOG\\py_TOD.log')
         self.db_ARCHV = Class_DB_SQLite(c_dir + '\\DB\\db_ARCH.sqlite')
         self.db_TODAY = Class_DB_SQLite(c_dir + '\\DB\\db_TODAY.sqlite')
         self.cfg_soft = [] # list of table 'cfg_SOFT'

@@ -203,7 +203,7 @@ class Class_GLBL():
     def __init__(self):
         #self.trm = Class_TRMN()
         c_dir    = os.path.abspath(os.curdir)
-        self.lg_file  = Class_LGR      (c_dir + '\\LOG\\py_TABS.log')
+        self.lg_file  = Class_LGR      (c_dir + '\\LOG\\py_ARC.log')
         self.db_ARCHV = Class_DB_SQLite(c_dir + '\\DB\\db_ARCH.sqlite')
         self.db_TODAY = Class_DB_SQLite(c_dir + '\\DB\\db_TODAY.sqlite')
         self.cfg_soft = [] # list of table 'cfg_SOFT'
@@ -678,6 +678,53 @@ class Class_GLBL():
 #=======================================================================
 
 #=======================================================================
+def event_MENU(_gl, wndw, ev, val):
+    #----------------------------------------
+    if ev == 'CFG_SOFT':
+        if val['-TABGROUP-'] == '-CFG_SOFT-':
+            if len(val['_CFG_SOFT_table_']) == 0:
+                sg.popup_ok('You MUST choise ROW', background_color='LightGrey', title=ev)
+            else:
+                slct = _gl.cfg_soft[val['_CFG_SOFT_table_'][0]]
+                #--- you can change ONLY parametrs from list 'slct_val'  ---------------
+                slct_val = ['titul', 'path_file_DATA', 'path_file_HIST', 'path_file_TXT']
+                if slct[0] in slct_val:
+                    for item in slct_val:
+                        if item == slct[0]:
+                            if item == 'titul':
+                                txt = sg.PopupGetText(slct[0], default_text = slct[1])
+                            else:
+                                txt = sg.PopupGetFile( slct[1], title = slct[0])
+                            if txt != None:
+                                _gl.cfg_soft[val['_CFG_SOFT_table_'][0]] = (item, txt)
+                                wndw.FindElement('_CFG_SOFT_table_').Update(_gl.cfg_soft)
+                                #---  update tale 'cfg_SOFT' -----------------------------
+                                rq = _gl.db_TODAY.update_tbl('cfg_SOFT',
+                                                        _gl.cfg_soft, val = ' VALUES(?,?)')
+                                if rq[0] > 0:
+                                    #err_lmb('event_menu_CFG_SOFT',
+                                    #    s_lmb('Did not update cfg_SOFT!') + s_lmb(rep[1]))
+                                    sg.popup_ok('Did not update cfg_SOFT!', s_lmb(rep[1]), background_color='Coral', title=ev)
+                                else:
+                                    sg.popup_ok('Updated *cfg_SOFT* successfully !',
+                                        background_color='LightGreen', title=ev)
+                else:
+                    #err_lmb(ev, s_lmb(slct[0]) + s_lmb('Sorry, can not change'))
+                    sg.popup_ok(slct[0], 'Sorry, can not change', background_color='Coral', title=ev)
+        else:
+            sg.popup_ok('You MUST choise tab CFG_SOFT', background_color='LightGrey', title=ev)
+    #----------------------------------------
+    if ev == 'About...':
+        wndw.disappear()
+        sg.popup('About this program  Ver 1.0',
+                 'Python ' + str(sys.version_info.major) + '.' + str(sys.version_info.minor),
+                 'PySimpleGUI Ver  ' + str(sg.version),
+                 '"Matplotlib Ver  ' + str(mpl.__version__),
+                 grab_anywhere=True)
+        wndw.reappear()
+    
+    
+#=======================================================================
 def event_TABGROUP(_gl, wndw, ev, val):     #--- refresh TABGROUP ---
     if val['-TABGROUP-'] == '-Tbl_HIST-':
         rep = _gl.db_TODAY.read_tbl('hist_FUT')
@@ -783,6 +830,10 @@ def main():
         if event in ['-TABGROUP-']:
             event_TABGROUP(_gl, window, event, values)
         #
+        if event in ['Save',     'Clr HIST file',  'Clr HIST table',
+                     'CFG_SOFT', 'CFG_PACK',       'PACK TABL', 'FUT File DAT', 'PACK GRAPH',
+                     'About...']:
+            event_MENU(_gl, window, event, values)
     window.close()
     return 0
 
