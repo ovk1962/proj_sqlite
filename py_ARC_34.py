@@ -726,7 +726,11 @@ def event_MENU(_gl, wndw, ev, val):
     
 #=======================================================================
 def event_TABGROUP(_gl, wndw, ev, val):     #--- refresh TABGROUP ---
-    if val['-TABGROUP-'] == '-Tbl_HIST-':
+    #-------------------------------------------------------------------
+    if val['-TABGROUP-'] == '-CFG_SOFT-':
+        wndw['_CFG_SOFT_table_'].Update(_gl.cfg_soft)
+    #-------------------------------------------------------------------
+    if val['-TABGROUP-'] == '-FUT_TOD-':
         rep = _gl.db_TODAY.read_tbl('hist_FUT')
         if rep[0] == 0:
             if len(rep[1]) > 1:
@@ -741,33 +745,64 @@ def event_TABGROUP(_gl, wndw, ev, val):     #--- refresh TABGROUP ---
                            [14*'-',35*'-',],
                            ['last' , '',],
                            ['lench', len(rep[1]),]]
-        wndw['_DATA_HIST_FILE_table_DB_'].Update(mtrx_db)
+        wndw['_HIST_FUT_TOD_table_DB_'].Update(mtrx_db)
     #-------------------------------------------------------------------
-    elif val['-TABGROUP-'] == '-CFG_SOFT-':
-        wndw['_CFG_SOFT_table_'].Update(_gl.cfg_soft)
+    if  val['-TABGROUP-'] == '-FUT_ARC-':
+        rep = _gl.db_ARCHV.read_tbl('hist_FUT')
+        if rep[0] == 0:
+            if len(rep[1]) > 1:
+                mtrx_db = [['first', rep[1][0][1].split('|')[0],],
+                           ['second',rep[1][1][1].split('|')[0],],
+                           [14*'-',35*'-',],
+                           ['last' , rep[1][-1][1].split('|')[0],],
+                           ['lench', len(rep[1]),]]
+            else:
+                mtrx_db = [['first', '',],
+                           ['second','',],
+                           [14*'-',35*'-',],
+                           ['last' , '',],
+                           ['lench', len(rep[1]),]]
+        wndw['_HIST_FUT_ARC_table_DB_'].Update(mtrx_db)
+    #-------------------------------------------------------------------
+    if  val['-TABGROUP-'] == '-PCK_TOD-':
+        rep = _gl.db_TODAY.read_tbl('hist_PACK')
+        if rep[0] == 0:
+            if len(rep[1]) > 1:
+                mtrx_db = [['first', rep[1][0][1].split(' ')[0]  + ' ' + rep[1][0][1].split(' ')[1],],
+                           ['second',rep[1][1][1].split(' ')[0]  + ' ' + rep[1][1][1].split(' ')[1],],
+                           [14*'-',35*'-',],
+                           ['last' , rep[1][-1][1].split(' ')[0] + ' ' + rep[1][-1][1].split(' ')[1],],
+                           ['lench', len(rep[1]),]]
+            else:
+                mtrx_db = [['first', '',],
+                           ['second','',],
+                           [14*'-',35*'-',],
+                           ['last' , '',],
+                           ['lench', len(rep[1]),]]
+        wndw['_HIST_PCK_TOD_table_DB_'].Update(mtrx_db)
+    #-------------------------------------------------------------------
+    if  val['-TABGROUP-'] == '-PCK_ARC-':
+        rep = _gl.db_ARCHV.read_tbl('hist_PACK')
+        if rep[0] == 0:
+            if len(rep[1]) > 1:
+                mtrx_db = [['first', rep[1][0][1].split(' ')[0]  + ' ' + rep[1][0][1].split(' ')[1],],
+                           ['second',rep[1][1][1].split(' ')[0]  + ' ' + rep[1][1][1].split(' ')[1],],
+                           [14*'-',35*'-',],
+                           ['last' , rep[1][-1][1].split(' ')[0] + ' ' + rep[1][-1][1].split(' ')[1],],
+                           ['lench', len(rep[1]),]]
+            else:
+                mtrx_db = [['first', '',],
+                           ['second','',],
+                           [14*'-',35*'-',],
+                           ['last' , '',],
+                           ['lench', len(rep[1]),]]
+        wndw['_HIST_PCK_ARC_table_DB_'].Update(mtrx_db)
     #-------------------------------------------------------------------
     else:
         pass
 #=======================================================================
 def tabs_layout(nmb_tab, tab_tabs):
-    if nmb_tab > len(tab_tabs): nmb_tab = 0
-    if nmb_tab == 0:  # Tbl_HIST
-        mtrx = [['first' ,35*'-',],
-                ['second',35*'-',],
-                [14*'-',35*'-',],
-                ['last'  ,35*'-',],
-                ['lench' ,35*'-',]]
-        tabs = [[sg.Table(
-                    values   = mtrx,
-                    num_rows = min(len(mtrx), 30),
-                    headings = Class_CNST.head_data_hst,
-                    key      = '_DATA_HIST_FILE_table_DB_',
-                    auto_size_columns     = True,
-                    justification         = 'center',
-                    alternating_row_color = 'darkgrey',
-                    )],
-               ]
-    elif nmb_tab == 1:  # CFG_SOFT
+    if nmb_tab == 'Cfg SOFT':  #---------------------------------------
         mtrx = [['titul         ',35*'-',],
                 ['path_file_DATA',35*'-',],
                 ['path_file_HIST',35*'-',],
@@ -784,7 +819,75 @@ def tabs_layout(nmb_tab, tab_tabs):
                     hide_vertical_scroll  = True,
                     )],
                ]
-               
+    if nmb_tab == 'fut TOD':  #---------------------------------------
+        mtrx = [['first' ,35*'-',],
+                ['second',35*'-',],
+                [14*'-',35*'-',],
+                ['last'  ,35*'-',],
+                ['lench' ,35*'-',]]
+        tabs = [[sg.Table(
+                    values   = mtrx,
+                    num_rows = min(len(mtrx), 30),
+                    headings = Class_CNST.head_data_hst,
+                    key      = '_HIST_FUT_TOD_table_DB_',
+                    auto_size_columns     = True,
+                    justification         = 'center',
+                    alternating_row_color = 'darkgrey',
+                    )],
+               ]
+    if nmb_tab == 'fut ARC':  #---------------------------------------
+        mtrx = [['first' ,35*'-',],
+                ['second',35*'-',],
+                [14*'-',35*'-',],
+                ['last'  ,35*'-',],
+                ['lench' ,35*'-',]]
+        tabs = [[sg.Table(
+                    values   = mtrx,
+                    num_rows = min(len(mtrx), 35),
+                    headings = Class_CNST.head_data_hst,
+                    key      = '_HIST_FUT_ARC_table_DB_',
+                    auto_size_columns     = True,
+                    justification         = 'center',
+                    alternating_row_color = 'darkgrey',
+                    )],
+                 #[sg.Button('APPEND', key='-APPEND_TXT_in_ARCH-')],
+               ]
+    if nmb_tab == 'pck TOD':  #---------------------------------------
+        mtrx = [['first' ,35*'-',],
+                ['second',35*'-',],
+                [14*'-',35*'-',],
+                ['last'  ,35*'-',],
+                ['lench' ,35*'-',]]
+        tabs = [[sg.Table(
+                    values   = mtrx,
+                    num_rows = min(len(mtrx), 35),
+                    headings = Class_CNST.head_data_hst,
+                    key      = '_HIST_PCK_TOD_table_DB_',
+                    auto_size_columns     = True,
+                    justification         = 'center',
+                    alternating_row_color = 'darkgrey',
+                    )],
+                #[sg.Button('CALC', key='-CALC_UPDATE_PCK_ARCH-')],
+               ]
+        
+    if nmb_tab == 'pck ARC':  #---------------------------------------
+        mtrx = [['first' ,35*'-',],
+                ['second',35*'-',],
+                [14*'-',35*'-',],
+                ['last'  ,35*'-',],
+                ['lench' ,35*'-',]]
+        tabs = [[sg.Table(
+                    values   = mtrx,
+                    num_rows = min(len(mtrx), 35),
+                    headings = Class_CNST.head_data_hst,
+                    key      = '_HIST_PCK_ARC_table_DB_',
+                    auto_size_columns     = True,
+                    justification         = 'center',
+                    alternating_row_color = 'darkgrey',
+                    )],
+                #[sg.Button('CALC', key='-CALC_UPDATE_PCK_ARCH-')],
+               ]
+        
     return tabs
 #=======================================================================    
 def main():
@@ -809,9 +912,9 @@ def main():
                     ['Service', ['CFG_SOFT', 'CFG_PACK', '---', 'FUT File DAT', 'PACK TABL', '---', 'PACK GRAPH']],
                     ['Help',    ['About...']],]
         #
-        tab_keys = ('-Tbl_HIST-', '-CFG_SOFT-')
-        tab_tabs = ('Tabl HIST',  'Conf SOFT')
-        tab_group_layout = [[sg.Tab(tab_tabs[nm], tabs_layout(nm, tab_tabs), key=tab_keys[nm]) for nm in range(len(tab_keys))]]
+        tab_keys = ('-CFG_SOFT-', '-FUT_TOD-', '-FUT_ARC-', '-PCK_TOD-', '-PCK_ARC-')
+        tab_tabs = ( 'Cfg SOFT' ,  'fut TOD' ,  'fut ARC',   'pck TOD' ,  'pck ARC')
+        tab_group_layout = [[sg.Tab(tab_tabs[nm], tabs_layout(tab_tabs[nm], tab_tabs), key=tab_keys[nm]) for nm in range(len(tab_keys))]]
         #
         layout = [[sg.Menu(menu_def, tearoff=False, pad=(200, 1), key='-MENU-')],
                   [sg.TabGroup(tab_group_layout, enable_events=True,
