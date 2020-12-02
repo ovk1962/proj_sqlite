@@ -8,6 +8,10 @@ import os, sys, math, time, sqlite3, logging
 from datetime import datetime, timezone
 import math
 import matplotlib as mpl
+import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
+import matplotlib.ticker as ticker
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import PySimpleGUI as sg    # vers >= 4.29
 from ipdb import set_trace as bp    # to set breakpoints just -> bp()
 #=======================================================================
@@ -676,6 +680,140 @@ class Class_GLBL():
 
         return [0, 'ok']
 #=======================================================================
+def GRAPH_One_PACK(_gl, wndw, ev, val, period_days = 1):
+    sg.ChangeLookAndFeel('BlueMono')
+    def draw_figure(canvas, figure):
+        figure_canvas_agg = FigureCanvasTkAgg(figure, canvas)
+        figure_canvas_agg.draw()
+        figure_canvas_agg.get_tk_widget().pack(side='top', fill='both', expand=1)
+        return figure_canvas_agg
+    choices = []
+    for item in _gl.cfg_pck:
+        choices.append(item[Class_CNST.kNm])
+
+    layout = [
+                [sg.Canvas(size=(640, 480), key='-CANVAS-')],
+                [sg.Button(' REFRESH ', key='-REFRESH_GRAPH_One_PACK-'),
+                 sg.T('  Select PACKET '),
+                 sg.Combo(choices, default_value=choices[0], size=(15, len(choices)), key='-NUM_PACK-'),
+                 #sg.T('    Select Period Days '),
+                 #sg.Slider(range=(1, hist_day_load), orientation='h', size=(11, 15), key='-SLIDER_GRAPH_TOD-'),
+                 #sg.Input(key='-IN_CALENDAR-', size=(20,1)),
+                 #sg.CalendarButton('Calendar', target='-IN_CALENDAR-', format='%d.%m.%Y', no_titlebar=False, begin_at_sunday_plus=1,),
+                 # sg.Button('Date Popup'),
+                 #sg.T(25*' '),
+                 sg.Button('Close')],
+             ]
+    wnd_5 = sg.Window('GRAPH / One PACK', layout, no_titlebar=False, modal=False, finalize=True, location=(150, 100))
+
+    canvas_elem = wnd_5['-CANVAS-']
+    canvas = canvas_elem.TKCanvas
+    # draw the intitial scatter plot
+    fig = Figure(figsize=(10, 5), dpi=100)
+    fig.subplots_adjust(left=0.07, right=0.94, bottom=0.1, top=0.9)
+    ax  = fig.add_subplot(111)
+    ax2 = ax.twinx()
+    #ax.set_xticks([])
+    fig_agg = draw_figure(canvas, fig)
+
+    while True: #--- Main Cycle ---------------------------------------#
+        e, v = wnd_5.read()
+        if e in [sg.WIN_CLOSED, 'Close']:
+            break
+
+        elif e == '-REFRESH_GRAPH_One_PACK-':
+            #--- fix number packets in GRAPHik
+            num_packet = 0
+            if v['-NUM_PACK-'][2] == '_':
+                num_packet = int(v['-NUM_PACK-'][1])
+            else:
+                num_packet = int(v['-NUM_PACK-'][1:3])
+            print('    -NUM_PACK-    ', num_packet )
+            arr_num_pack = [num_packet]
+
+            #--- read ALL hist_FUT archiv  -----------------------------
+            req = _gl.db_TODAY.read_tbl('hist_PACK')
+            if req[0] > 0:
+                _gl.err_status = 'GRAPH_One_PACK / Not read db_ARCHV *hist_PACK*!  ' + s_lmb(req[1])
+                _gl.err_DB(err_pop = True, err_log = True)
+                return
+            rep = _gl.db_ARCHV.read_tbl('hist_PACK')
+            if rep[0] > 0:
+                _gl.err_status = 'GRAPH_One_PACK / Not read db_ARCHV *hist_PACK*!  ' + s_lmb(rep[1])
+                _gl.err_DB(err_pop = True, err_log = True)
+                return
+            #_gl.prn_arr('db_ARCHV=>hist_PACK=>',rep[1][-1])
+            #
+            period_tm = period_days
+            index_last_day = len(rep[1])
+            df = rep[1][-1][1].split('|')[0].split(' ')[0]
+            #print('df = ', df)
+            for item in reversed(rep[1]):
+                index_last_day -= 1
+                if item[1].split('|')[0].split(' ')[0] != df:
+                    df = item[1].split('|')[0].split(' ')[0]
+                    period_tm -= 1
+                if period_tm == 0:
+                    break
+            index_last_day += 1
+
+            req = _gl.unpack_str_pck(rep[1][index_last_day:] + req[1])
+            #print('req[1][0] => ',req[1][0])
+            if req[0] > 0:
+                err_lmb('main', s_lmb('Error unpack_str_pck!') + s_lmb(req[1]))
+                return
+            else:
+                _gl.arr_pck_a = req[1]
+            
+            arr_pk_graph = []
+            for item in _gl.arr_pck_a:
+                arr_bb = Class_str_FUT_PCK()
+                arr_bb.ind_s, arr_bb.dt  = item.ind_s, item.dt
+                for ktem in arr_num_pack:
+                    arr_bb.arr.append(item.arr[ktem])
+                arr_pk_graph.append(arr_bb)
+            #print('arr_pk_graph=>',arr_pk_graph[0])
+            #
+            if len(arr_pk_graph) > 0:
+                print('len(arr_pk_graph) = ', len(arr_pk_graph))
+                print('arr_pk_graph[0]  = ', arr_pk_graph[0])
+                print('arr_pk_graph[-1] = ', arr_pk_graph[-1])
+            #
+            x, y_ASK, y_BID, y_EMA, y_EMAr, y_CNT = [], [], [], [], [], []
+            for cnt, item in enumerate(arr_pk_graph):
+                x.append(item.dt[1] + '\n' + item.dt[0])
+                y_ASK.append(item.arr[0][0])
+                y_BID.append(item.arr[0][1])
+                y_EMA.append(item.arr[0][2])
+                y_EMAr.append(item.arr[0][3])
+                y_CNT.append(item.arr[0][4])
+
+            ax.cla()
+            ax2.cla()
+
+            ax.scatter(x, y_ASK, c='red',   label='ASK', s=1) # alpha=0.3, edgecolors='none')
+            ax.scatter(x, y_BID, c='blue',  label='BID', s=1) # alpha=0.3, edgecolors='none')
+            ax.scatter(x, y_EMAr, c='lightgreen', label='y_EMAr', alpha=0.25,  s=3) # alpha=0.5, edgecolors='none')
+
+            ax2.plot(x, y_CNT, color = (0.1, 0.2, 0.9, 0.5), linewidth = 5, label='CNT')
+            #ax2.scatter(x, y_CNT, c='green', label='CNT', alpha=0.75,  s=3) # alpha=0.3, edgecolors='none')
+            ax2.grid(False)
+            ax2.set_xticks([])
+
+            ax.tick_params(axis='x', which='major', labelsize=6)
+            ax.tick_params(axis='y', which='major', labelsize=10)
+            ax.xaxis.set_major_locator(plt.MaxNLocator(10))
+            #ax.locator_params(tight=True, nbins = 5)
+            ax.grid(axis = 'both')
+
+            ax.legend(loc='upper left')
+            ax2.legend(loc='upper right')
+            fig_agg.draw()
+
+        print(e, v)    # type(event): str,   type(values):dict
+    wnd_5.close()
+    sg.ChangeLookAndFeel('SystemDefault')
+#=======================================================================
 def event_TIMEOUT(_gl, wndw, ev, val):
     event_TABGROUP(_gl, wndw, ev, val)  # just for refresh UI
     os.system('cls')  # on windows
@@ -829,6 +967,9 @@ def event_MENU(_gl, wndw, ev, val):
             #-------------------------------------------------------------------
         wnd_4.close()
         #wndw.reappear()
+    #----------------------------------------
+    if ev == 'PACK GRAPH':
+        GRAPH_One_PACK(_gl, wndw, ev, val)
     #----------------------------------------
     if ev == 'Clr HIST tbl TODAY':
         rep = _gl.db_TODAY.update_tbl('hist_PACK', [])
@@ -1161,7 +1302,7 @@ def main():
             event_TABGROUP(_gl, window, event, values)
         #
         if event in ['Clr HIST tbl TODAY', 'Clr HIST tbl FIRST', 'Clr HIST tbl LAST', 'APPEND', 'CALC',
-                     'CFG_SOFT', 'CFG_PACK', 'PACK TABL', 'FUT File DAT', 'PACK GRAPH',
+                     'CFG_SOFT', 'CFG_PACK', 'PACK GRAPH',
                      'About...']:
             event_MENU(_gl, window, event, values)
     window.close()
