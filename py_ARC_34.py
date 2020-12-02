@@ -676,7 +676,9 @@ class Class_GLBL():
 
         return [0, 'ok']
 #=======================================================================
-
+def event_TIMEOUT(_gl, wndw, ev, val):
+    event_TABGROUP(_gl, wndw, ev, val)  # just for refresh UI
+    os.system('cls')  # on windows
 #=======================================================================
 def event_MENU(_gl, wndw, ev, val):
     #----------------------------------------
@@ -722,8 +724,6 @@ def event_MENU(_gl, wndw, ev, val):
                  '"Matplotlib Ver  ' + str(mpl.__version__),
                  grab_anywhere=True)
         wndw.reappear()
-    
-    
 #=======================================================================
 def event_TABGROUP(_gl, wndw, ev, val):     #--- refresh TABGROUP ---
     #-------------------------------------------------------------------
@@ -930,6 +930,10 @@ def main():
         event, values = window.read(timeout = DelayMainCycle)
         print(event, values)    # type(event): str,   type(values):dict
         if event in [sg.WIN_CLOSED, 'Exit']:  break
+        #
+        if event in ['__TIMEOUT__']:
+            event_TIMEOUT(_gl, window, event, values)
+        #
         if event in ['-TABGROUP-']:
             event_TABGROUP(_gl, window, event, values)
         #
@@ -937,7 +941,6 @@ def main():
                      'CFG_SOFT', 'CFG_PACK',       'PACK TABL', 'FUT File DAT', 'PACK GRAPH',
                      'About...']:
             event_MENU(_gl, window, event, values)
-            event_TABGROUP(_gl, window, event, values)  # just for refresh UI
     window.close()
     return 0
 
