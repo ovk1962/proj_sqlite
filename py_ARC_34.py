@@ -684,6 +684,7 @@ def GRAPH_One_PACK(_gl, wndw, ev, val, period_days = 3):
     sg.ChangeLookAndFeel('BlueMono')
     def draw_figure(canvas, figure):
         figure_canvas_agg = FigureCanvasTkAgg(figure, canvas)
+        #figure.savefig('hello.png')
         figure_canvas_agg.draw()
         figure_canvas_agg.get_tk_widget().pack(side='top', fill='both', expand=1)
         return figure_canvas_agg
@@ -764,8 +765,6 @@ def GRAPH_One_PACK(_gl, wndw, ev, val, period_days = 3):
                 num_packet = int(v['-NUM_PACK-'][1:3])
             print('    -NUM_PACK-    ', num_packet )
             arr_num_pack = [num_packet]
-
-            #
             
             arr_pk_graph = []
             for item in _gl.arr_pck_a:
@@ -793,6 +792,8 @@ def GRAPH_One_PACK(_gl, wndw, ev, val, period_days = 3):
             ax.cla()
             ax2.cla()
 
+            ax.set_title('pack_' + str(num_packet) + '.png   ' + v['-NUM_PACK-'])
+
             ax.scatter(x, y_ASK, c='red',   label='ASK', s=1) # alpha=0.3, edgecolors='none')
             ax.scatter(x, y_BID, c='blue',  label='BID', s=1) # alpha=0.3, edgecolors='none')
             ax.scatter(x, y_EMAr, c='lightgreen', label='y_EMAr', alpha=0.25,  s=3) # alpha=0.5, edgecolors='none')
@@ -811,6 +812,7 @@ def GRAPH_One_PACK(_gl, wndw, ev, val, period_days = 3):
             ax.legend(loc='upper left')
             ax2.legend(loc='upper right')
             fig_agg.draw()
+            fig.savefig('pack_' + str(num_packet) + '.png')
 
         print(e, v)    # type(event): str,   type(values):dict
     wnd_5.close()
