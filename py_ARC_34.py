@@ -678,7 +678,60 @@ class Class_GLBL():
 #=======================================================================
 
 
-
+#=======================================================================
+def tabs_layout(nmb_tab, tab_tabs):
+    if nmb_tab > len(tab_tabs): nmb_tab = 0
+    if   nmb_tab == 0:  # File_HIST
+        mtrx = [['first' ,35*'-',],
+                ['second',35*'-',],
+                [14*'-',35*'-',],
+                ['last'  ,35*'-',],
+                ['lench' ,35*'-',]]
+        tabs = [[sg.Table(
+                    values   = mtrx,
+                    num_rows = min(len(mtrx), 30),
+                    headings = Class_CNST.head_data_hst,
+                    key      = '_DATA_HIST_FILE_table_',
+                    auto_size_columns     = True,
+                    justification         = 'center',
+                    alternating_row_color = 'darkgrey',
+                    )],
+               ]
+    elif nmb_tab == 1:  # Tbl_HIST
+        mtrx = [['first' ,35*'-',],
+                ['second',35*'-',],
+                [14*'-',35*'-',],
+                ['last'  ,35*'-',],
+                ['lench' ,35*'-',]]
+        tabs = [[sg.Table(
+                    values   = mtrx,
+                    num_rows = min(len(mtrx), 30),
+                    headings = Class_CNST.head_data_hst,
+                    key      = '_DATA_HIST_FILE_table_DB_',
+                    auto_size_columns     = True,
+                    justification         = 'center',
+                    alternating_row_color = 'darkgrey',
+                    )],
+               ]
+    elif nmb_tab == 2:  # CFG_SOFT
+        mtrx = [['titul         ',35*'-',],
+                ['path_file_DATA',35*'-',],
+                ['path_file_HIST',35*'-',],
+                ['   dt_start   ',35*'-',],
+                ['path_file_TXT ',35*'-',]]
+        tabs = [[sg.Table(
+                    values   = mtrx,
+                    num_rows = min(len(mtrx), 10),
+                    headings = Class_CNST.head_cfg_soft,
+                    key      = '_CFG_SOFT_table_',
+                    auto_size_columns     = True,
+                    justification         = 'center',
+                    alternating_row_color = 'thistle',
+                    hide_vertical_scroll  = True,
+                    )],
+               ]
+               
+    return tabs
 #=======================================================================    
 def main():
     sg.theme('DefaultNoMoreNagging')     # Please always add color to your window DefaultNoMoreNagging
@@ -694,9 +747,33 @@ def main():
             #    background_color='LightGreen', title='main')
             os.system('cls')  # on windows
         #---------------------------------------------------------------
-        
+        pass
         #---------------------------------------------------------------
         break
+    while True: #--- Menu & Tab Definition ----------------------------#
+        menu_def = [['File',    ['Save',     'Clr HIST file',    'Clr HIST table', '---', 'Exit']],
+                    ['Service', ['CFG_SOFT', 'CFG_PACK', '---', 'FUT File DAT', 'PACK TABL', '---', 'PACK GRAPH']],
+                    ['Help',    ['About...']],]
+        #
+        tab_keys = ('-File_HIST-', '-Tbl_HIST-', '-CFG_SOFT-')
+        tab_tabs = ('File HIST',   'Tabl HIST',  'Conf SOFT')
+        tab_group_layout = [[sg.Tab(tab_tabs[nm], tabs_layout(nm, tab_tabs), key=tab_keys[nm]) for nm in range(len(tab_keys))]]
+        #
+        layout = [[sg.Menu(menu_def, tearoff=False, pad=(200, 1), key='-MENU-')],
+                  [sg.TabGroup(tab_group_layout, enable_events=True,
+                               key='-TABGROUP-')],
+                  #[sg.Button('Save TXT'), sg.Button('Clear TBL')],
+                  [sg.StatusBar(text= '_gl.account.dt' + '  wait ...', size=(40,1),
+                                key='-STATUS_BAR-'),
+                    sg.Exit(auto_size_button=True)]]
+        window = sg.Window('My window with tabs', layout, finalize=True, no_titlebar=False, location=locationXY)
+        window.set_title(_gl.cfg_soft[0][1])
+        break
+    while True: #--- Main Cycle ---------------------------------------#
+        event, values = window.read(timeout = DelayMainCycle)
+        print(event, values)    # type(event): str,   type(values):dict
+        if event in [sg.WIN_CLOSED, 'Exit']:  break
+    window.close()
     return 0
 
 if __name__ == '__main__':
