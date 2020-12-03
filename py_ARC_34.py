@@ -680,7 +680,7 @@ class Class_GLBL():
 
         return [0, 'ok']
 #=======================================================================
-def GRAPH_One_PACK(_gl, wndw, ev, val, period_days = 3):
+def GRAPH_One_PACK(_gl, wndw, ev, val, period_days = 1):
     sg.ChangeLookAndFeel('BlueMono')
     def draw_figure(canvas, figure):
         figure_canvas_agg = FigureCanvasTkAgg(figure, canvas)
@@ -1280,8 +1280,8 @@ def main():
                     ['Service', ['CFG_SOFT', 'CFG_PACK', '---', 'PACK GRAPH']],
                     ['Help',    ['About...']],]
         #
-        tab_keys = ('-CFG_SOFT-', '-FUT_TOD-', '-FUT_ARC-', '-PCK_TOD-', '-PCK_ARC-')
-        tab_tabs = ( 'Cfg SOFT' ,  'fut TOD' ,  'fut ARC',   'pck TOD' ,  'pck ARC')
+        tab_keys = ('-CFG_SOFT-', '-FUT_TOD-', '-PCK_TOD-', '-FUT_ARC-', '-PCK_ARC-')
+        tab_tabs = ( 'Cfg SOFT' ,  'fut TOD' ,  'pck TOD' ,  'fut ARC',   'pck ARC')
         tab_group_layout = [[sg.Tab(tab_tabs[nm], tabs_layout(tab_tabs[nm], tab_tabs), key=tab_keys[nm]) for nm in range(len(tab_keys))]]
         #
         layout = [[sg.Menu(menu_def, tearoff=False, pad=(200, 1), key='-MENU-')],
