@@ -1463,7 +1463,7 @@ def main():
                                 key='-STATUS_BAR-'),
                     sg.Exit(auto_size_button=True)]]
         window = sg.Window('My window with tabs', layout, finalize=True, no_titlebar=False, location=locationXY)
-        window.set_title(_gl.cfg_soft[0][1])
+        window.set_title(_gl.cfg_soft[0][1] + '_TOD_34')
         break
     while True: #--- Main Cycle ---------------------------------------#
         event, values = window.read(timeout = DelayMainCycle)

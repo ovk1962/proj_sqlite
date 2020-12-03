@@ -24,9 +24,9 @@ s_lmb   = lambda s: '\n' + str(s)
 err_lmb = lambda st,s: sg.PopupError(s, title=st,
     background_color = 'Coral', no_titlebar = False, keep_on_top=True)
 #
-locationXY = (300, 50)
+locationXY = (150, 100)
 DelayMainCycle = 2500   # delay of main cycle, 1 msec
-hist_day_load  = 2     # ARCHIV history from 23 March
+#hist_day_load  = 2     # ARCHIV history from 23 March
 #
 def test_msg_lmb():
     #bp()
@@ -694,16 +694,19 @@ def GRAPH_One_PACK(_gl, wndw, ev, val, period_days = 2):
 
     layout = [
                 [sg.Canvas(size=(640, 480), key='-CANVAS-')],
-                [sg.Button(' REFRESH ', key='-REFRESH_GRAPH_One_PACK-'),
+                [sg.Button('__CLOSE__'),
+                 #sg.Button(' REFRESH ', key='-REFRESH_GRAPH_One_PACK-'),
                  sg.T('  Select PACKET '),
-                 sg.Combo(choices, default_value=choices[0], size=(15, len(choices)), key='-NUM_PACK-'),
-                 #sg.T('    Select Period Days '),
+                 sg.Combo(choices, default_value=choices[0], size=(18, len(choices)), key='-NUM_PACK-'),
+                 sg.T(5*' '),
+                 sg.Button(' REFRESH ', key='-REFRESH_GRAPH_One_PACK-'),
                  #sg.Slider(range=(1, hist_day_load), orientation='h', size=(11, 15), key='-SLIDER_GRAPH_TOD-'),
                  #sg.Input(key='-IN_CALENDAR-', size=(20,1)),
                  #sg.CalendarButton('Calendar', target='-IN_CALENDAR-', format='%d.%m.%Y', no_titlebar=False, begin_at_sunday_plus=1,),
                  # sg.Button('Date Popup'),
-                 #sg.T(25*' '),
-                 sg.Button('Close')],
+                 #sg.T(75*' '),
+                 #sg.Button('__CLOSE__')
+                 ],
              ]
     wnd_5 = sg.Window('GRAPH / One PACK', layout, no_titlebar=False, modal=False, finalize=True, location=(150, 100))
 
@@ -753,7 +756,7 @@ def GRAPH_One_PACK(_gl, wndw, ev, val, period_days = 2):
                 
     while True: #--- Main Cycle ---------------------------------------#
         e, v = wnd_5.read()
-        if e in [sg.WIN_CLOSED, 'Close']:
+        if e in [sg.WIN_CLOSED, '__CLOSE__']:
             break
 
         elif e == '-REFRESH_GRAPH_One_PACK-':
@@ -1292,7 +1295,7 @@ def main():
                                 key='-STATUS_BAR-'),
                     sg.Exit(auto_size_button=True)]]
         window = sg.Window('My window with tabs', layout, finalize=True, no_titlebar=False, location=locationXY)
-        window.set_title(_gl.cfg_soft[0][1])
+        window.set_title(_gl.cfg_soft[0][1] + '_ARC_34')
         break
     while True: #--- Main Cycle ---------------------------------------#
         event, values = window.read(timeout = DelayMainCycle)
