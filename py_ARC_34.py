@@ -680,7 +680,7 @@ class Class_GLBL():
 
         return [0, 'ok']
 #=======================================================================
-def GRAPH_One_PACK(_gl, wndw, ev, val, period_days = 2):
+def GRAPH_One_PACK(_gl, wndw, ev, val, period_days = 45):
     sg.ChangeLookAndFeel('BlueMono')
     def draw_figure(canvas, figure):
         figure_canvas_agg = FigureCanvasTkAgg(figure, canvas)
